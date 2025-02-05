@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Tracker System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 200px;
+        }
+
+        .summary {
+            text-align: left;
+        }
+
+        table {
+            width: 70%;
+            margin: auto;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid black;
+        }
+
+        input[type='checkbox'] {
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+
+        button {
+            padding: 10px;
+        }
+
+        .month {
+            padding: 5px;
+            font-weight: bold;
+            border-radius: 5px;
+            border: 1px solid #333;
+            cursor: pointer;
+        }
+
+        .clear {
+            padding: 7px 10px;
+            font-weight: bold;
+            font-size: 13px;
+            border-radius: 5px;
+            background-color: #fff;
+            border: 1px solid #333;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body onload="setCurrentMonth()">
+    <h2 style="text-align: center;">Meal Tracker System</h2>
+
+    <div class="container">
+        <div>
+            <label for="month-select" style="font-weight: bold;">Select Month:</label>
+            <input class="month" type="month" id="month-select" onchange="generateMonth()">
+        </div>
+        <button class="clear" onclick="confirmClearRecords()">Clear Records</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Breakfast</th>
+                <th>Lunch</th>
+                <th>Dinner</th>
+            </tr>
+        </thead>
+        <tbody id="meal-records"></tbody>
+    </table>
+
+    <script>
+        const mealPrices = { breakfast: 32, lunch: 55, dinner: 32 };
+
+        function setCurrentMonth() {
+            let today = new Date();
+            let year = today.getFullYear();
+            let month = String(today.getMonth() + 1).padStart(2, '0');
+            document.getElementById('month-select').value = `${year}-${month}`;
+            generateMonth();
+        }
+
+        function generateMonth() {
+            let selectedMonth = document.getElementById('month-select').value;
+            if (!selectedMonth) return;
+
+            let [year, month] = selectedMonth.split('-');
+            let daysInMonth = new Date(year, month, 0).getDate();
+            let records = JSON.parse(localStorage.getItem('mealRecords')) || {};
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                let dateStr = `${day}/${month}/${year}`;
+                if (!records[dateStr]) {
+                    records[dateStr] = { breakfast: false, lunch: false, dinner: false };
+                }
+            }
+            localStorage.setItem('mealRecords', JSON.stringify(records));
+            displayRecords();
+        }
+
+        function toggleMeal(date, mealType) {
+            let records = JSON.parse(localStorage.getItem('mealRecords')) || {};
+            records[date][mealType] = !records[date][mealType];
+            localStorage.setItem('mealRecords', JSON.stringify(records));
+            displayRecords();
+        }
+
+        function displayRecords() {
+            let selectedMonth = document.getElementById('month-select').value;
+            if (!selectedMonth) return;
+
+            let [year, month] = selectedMonth.split('-');
+            let records = JSON.parse(localStorage.getItem('mealRecords')) || {};
+            let tableBody = document.getElementById('meal-records');
+            tableBody.innerHTML = '';
+            let totalBreakfasts = 0;
+            let totalLunches = 0;
+            let totalDinners = 0;
+            let totalCharge = 0;
+
+            for (let date in records) {
+                if (!date.includes(`/${month}/${year}`)) continue;
+                let row = `<tr>
+                    <td>${date}</td>
+                    <td><input type='checkbox' ${records[date].breakfast ? 'checked' : ''} onclick="toggleMeal('${date}', 'breakfast')"></td>
+                    <td><input type='checkbox' ${records[date].lunch ? 'checked' : ''} onclick="toggleMeal('${date}', 'lunch')"></td>
+                    <td><input type='checkbox' ${records[date].dinner ? 'checked' : ''} onclick="toggleMeal('${date}', 'dinner')"></td>
+                </tr>`;
+                tableBody.innerHTML += row;
+
+                if (records[date].breakfast) {
+                    totalBreakfasts++;
+                    totalCharge += mealPrices.breakfast;
+                }
+                if (records[date].lunch) {
+                    totalLunches++;
+                    totalCharge += mealPrices.lunch;
+                }
+                if (records[date].dinner) {
+                    totalDinners++;
+                    totalCharge += mealPrices.dinner;
+                }
+            }
+
+            tableBody.innerHTML += `<tr>
+                    <th>Total Meals</th>
+                    <th>${totalBreakfasts}</th>
+                    <th>${totalLunches}</th>
+                    <th>${totalDinners}</th>
+                </tr>`;
+
+            tableBody.innerHTML += `<tr>
+                    <th>Total Charge</th>
+                    <th>${totalBreakfasts * mealPrices.breakfast} Taka</th>
+                    <th>${totalLunches * mealPrices.lunch} Taka</th>
+                    <th>${totalDinners * mealPrices.dinner} Taka</th>
+                </tr>`;
+
+            tableBody.innerHTML += `<tr>
+                    <th>Total Charge for the Month</th>
+                    <th colspan="3">${(totalBreakfasts * mealPrices.breakfast) + (totalLunches * mealPrices.lunch) + (totalDinners * mealPrices.dinner)} Taka</th>
+                </tr>`;
+        }
+
+        function confirmClearRecords() {
+            if (confirm("Are you sure you want to clear all records?")) {
+                localStorage.removeItem('mealRecords');
+                generateMonth();
+            }
+        }
+    </script>
+</body>
+
+</html>
